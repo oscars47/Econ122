@@ -9,6 +9,8 @@ from IPython.display import SVG
 from sknetwork.clustering import Louvain, get_modularity
 from sknetwork.visualization import svg_graph, svg_bigraph
 from scipy.spatial.distance import euclidean
+from GraphRicciCurvature.OllivierRicci import OllivierRicci
+import networkx as nx
 
 # generate random data to test
 def random_data(num_individuals):
@@ -58,8 +60,6 @@ def perform_clustering(df):
                 # Combine similarities (average)
                 combined_similarity = (gender_similarity + edu_income_similarity) / 2
                 similarity_matrix[i, j] = combined_similarity
-
-    print("Similarity matrix:", similarity_matrix)
 
     louvain = Louvain()
     labels_sparse = louvain.fit_predict(similarity_matrix)
