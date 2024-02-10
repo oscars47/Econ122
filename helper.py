@@ -69,14 +69,23 @@ def prepare_data(dataframe, condition, X_cols, Y_col, W_col):
 
     '''
     # make sure no NaN values
-    condition = condition & (~np.isnan(dataframe[Y_col]))
-    y = dataframe[Y_col][condition]
-    X = dataframe[X_cols][condition]
-    # make sure all are type float
+    if condition is not None:
+        condition = condition & (~np.isnan(dataframe[Y_col]))
+        y = dataframe[Y_col][condition]
+        X = dataframe[X_cols][condition]
+        # make sure all are type float
+        w = dataframe[W_col][condition]
+
+    else:
+        condition = ~np.isnan(dataframe[Y_col])
+        y = dataframe[Y_col]
+        X = dataframe[X_cols]
+        w = dataframe[W_col]
+
     y = y.astype(float)
     X = X.astype(float)
-    w = dataframe[W_col][condition]
     w = w.astype(float)
+       
 
     return X, y, w
 
@@ -84,7 +93,6 @@ def run_WLS(X, y, w, print_summary=True):
     '''runs a weighted least squares regression'''
     # Fitting the model
     X = sm.add_constant(X)
-
 
     model = sm.WLS(y, X, weights=w).fit()
 
@@ -98,7 +106,7 @@ def run_WLS(X, y, w, print_summary=True):
 
 def oaxaca_blinder(X1, X2, y1, y2, w1, w2):
     '''performs an Oaxaca-Blinder decomposition of the mean differences in characteristics and the mean differences in coefficients between two groups'''
-    
+
     # Mean differences in characteristics
     mean_diff = sm.add_constant(X1).mean() - sm.add_constant(X2).mean()
     print('Mean diff: ', mean_diff)
