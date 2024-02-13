@@ -1,101 +1,65 @@
-Condition  0 Year  19
-                            WLS Regression Results                            
-==============================================================================
-Dep. Variable:                logwage   R-squared:                       0.211
-Model:                            WLS   Adj. R-squared:                  0.211
-Method:                 Least Squares   F-statistic:                     4901.
-Date:                Mon, 12 Feb 2024   Prob (F-statistic):               0.00
-Time:                        19:35:57   Log-Likelihood:            -1.0225e+05
-No. Observations:              120172   AIC:                         2.045e+05
-Df Residuals:                  120168   BIC:                         2.046e+05
-Df Model:                           3                                         
-Covariance Type:                  HC1                                         
-==============================================================================
-                 coef    std err          t      P>|t|      [0.025      0.975]
-------------------------------------------------------------------------------
-const          1.4674      0.014    107.201      0.000       1.441       1.494
-educ           0.0958      0.001    108.049      0.000       0.094       0.097
-exp            0.0249      0.001     39.082      0.000       0.024       0.026
-exp2          -0.0004   1.33e-05    -28.889      0.000      -0.000      -0.000
-==============================================================================
-Omnibus:                     6072.177   Durbin-Watson:                   1.853
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):            18710.716
-Skew:                          -0.211   Prob(JB):                         0.00
-Kurtosis:                       4.886   Cond. No.                     5.95e+03
-==============================================================================
+Condition  0 Year  79
+Params:
+[ 1.77930425e+00  6.41771982e-02  2.23184322e-02 -3.50365469e-04]
+Standard Errors:
+[9.90964344e-03 5.89239523e-04 4.93239209e-04 1.02105293e-05]
+R^2 =  0.13279811295712662
+Number of Observations =  120587.0
 
-Notes:
-[1] Standard Errors are heteroscedasticity robust (HC1)
-[2] The condition number is large, 5.95e+03. This might indicate that there are
-strong multicollinearity or other numerical problems.
+ 
+ 
+
+Condition  1 Year  79
+Params:
+[ 1.86372970e+00  6.11569589e-02  3.17580404e-02 -5.04598296e-04]
+Standard Errors:
+[1.19405975e-02 7.02693414e-04 6.28293451e-04 1.28892813e-05]
+R^2 =  0.1662181281636933
+Number of Observations =  69095.0
+
+ 
+ 
+
+Condition  2 Year  79
+Params:
+[ 1.65873976e+00  6.66490574e-02  8.78696309e-03 -1.38871106e-04]
+Standard Errors:
+[1.45764110e-02 8.92781679e-04 6.46814012e-04 1.33354579e-05]
+R^2 =  0.1550599335211793
+Number of Observations =  51492.0
+
+ 
+ 
+
+Condition  0 Year  19
+Params:
+[ 1.46736291e+00  9.57624498e-02  2.49237492e-02 -3.83276893e-04]
+Standard Errors:
+[1.36879216e-02 8.86289219e-04 6.37725872e-04 1.32671640e-05]
+R^2 =  0.21099193996749022
+Number of Observations =  120172.0
 
  
  
 
 Condition  1 Year  19
-                            WLS Regression Results                            
-==============================================================================
-Dep. Variable:                logwage   R-squared:                       0.220
-Model:                            WLS   Adj. R-squared:                  0.220
-Method:                 Least Squares   F-statistic:                     2732.
-Date:                Mon, 12 Feb 2024   Prob (F-statistic):               0.00
-Time:                        19:35:57   Log-Likelihood:                -51024.
-No. Observations:               61309   AIC:                         1.021e+05
-Df Residuals:                   61305   BIC:                         1.021e+05
-Df Model:                           3                                         
-Covariance Type:                  HC1                                         
-==============================================================================
-                 coef    std err          t      P>|t|      [0.025      0.975]
-------------------------------------------------------------------------------
-const          1.5463      0.018     84.588      0.000       1.511       1.582
-educ           0.0926      0.001     77.548      0.000       0.090       0.095
-exp            0.0293      0.001     32.699      0.000       0.028       0.031
-exp2          -0.0004   1.84e-05    -24.107      0.000      -0.000      -0.000
-==============================================================================
-Omnibus:                     4791.820   Durbin-Watson:                   1.927
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):            13714.847
-Skew:                          -0.427   Prob(JB):                         0.00
-Kurtosis:                       5.154   Cond. No.                     5.79e+03
-==============================================================================
-
-Notes:
-[1] Standard Errors are heteroscedasticity robust (HC1)
-[2] The condition number is large, 5.79e+03. This might indicate that there are
-strong multicollinearity or other numerical problems.
+Params:
+[ 1.54634188e+00  9.25865630e-02  2.93461063e-02 -4.43944274e-04]
+Standard Errors:
+[1.82807969e-02 1.19391872e-03 8.97468251e-04 1.84155276e-05]
+R^2 =  0.21960268618143464
+Number of Observations =  61309.0
 
  
  
 
 Condition  2 Year  19
-                            WLS Regression Results                            
-==============================================================================
-Dep. Variable:                logwage   R-squared:                       0.249
-Model:                            WLS   Adj. R-squared:                  0.249
-Method:                 Least Squares   F-statistic:                     2617.
-Date:                Mon, 12 Feb 2024   Prob (F-statistic):               0.00
-Time:                        19:35:57   Log-Likelihood:                -47981.
-No. Observations:               58863   AIC:                         9.597e+04
-Df Residuals:                   58859   BIC:                         9.601e+04
-Df Model:                           3                                         
-Covariance Type:                  HC1                                         
-==============================================================================
-                 coef    std err          t      P>|t|      [0.025      0.975]
-------------------------------------------------------------------------------
-const          1.2248      0.020     59.806      0.000       1.185       1.265
-educ           0.1093      0.001     81.394      0.000       0.107       0.112
-exp            0.0191      0.001     21.763      0.000       0.017       0.021
-exp2          -0.0003   1.85e-05    -15.518      0.000      -0.000      -0.000
-==============================================================================
-Omnibus:                     3496.898   Durbin-Watson:                   1.902
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):            14139.912
-Skew:                          -0.145   Prob(JB):                         0.00
-Kurtosis:                       5.383   Cond. No.                     6.21e+03
-==============================================================================
-
-Notes:
-[1] Standard Errors are heteroscedasticity robust (HC1)
-[2] The condition number is large, 6.21e+03. This might indicate that there are
-strong multicollinearity or other numerical problems.
+Params:
+[ 1.22480067e+00  1.09295287e-01  1.91152141e-02 -2.86306434e-04]
+Standard Errors:
+[2.04796283e-02 1.34279070e-03 8.78316937e-04 1.84504502e-05]
+R^2 =  0.2489063719616883
+Number of Observations =  58863.0
 
  
  
