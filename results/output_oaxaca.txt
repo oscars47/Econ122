@@ -1,0 +1,110 @@
+Year  79
+Men vs Women
+Mean diff:  const     0.000000
+educ      0.000707
+exp       0.733723
+exp2     24.913193
+dtype: float64
+Coeff1:  [ 1.72714581e+00  6.23480967e-02  4.27825967e-02 -7.06319169e-04]
+Coeff2:  [ 1.48247525e+00  6.89251253e-02  2.21795085e-02 -3.86516723e-04]
+Explained component: 0.013837995167081129
+Unexplained component: 0.3547928065842964
+Total gap: 0.3686308017513775
+
+
+Women vs Men
+Mean diff:  const     0.000000
+educ     -0.000707
+exp      -0.733723
+exp2    -24.913193
+dtype: float64
+Coeff1:  [ 1.48247525e+00  6.89251253e-02  2.21795085e-02 -3.86516723e-04]
+Coeff2:  [ 1.72714581e+00  6.23480967e-02  4.27825967e-02 -7.06319169e-04]
+Explained component: -0.006692990494700658
+Unexplained component: -0.361937811256677
+Total gap: -0.3686308017513777
+
+
+Overall vs Men
+Mean diff:  const     0.000000
+educ     -0.000312
+exp      -0.323789
+exp2    -10.994098
+dtype: float64
+Coeff1:  [ 1.62678101e+00  6.49308931e-02  3.52059345e-02 -5.88046660e-04]
+Coeff2:  [ 1.72714581e+00  6.23480967e-02  4.27825967e-02 -7.06319169e-04]
+Explained component: -0.00495452020223042
+Unexplained component: -0.1410522953266858
+Total gap: -0.14600681552891623
+
+
+Overall vs Women
+Mean diff:  const     0.000000
+educ      0.000395
+exp       0.409934
+exp2     13.919094
+dtype: float64
+Coeff1:  [ 1.62678101e+00  6.49308931e-02  3.52059345e-02 -5.88046660e-04]
+Coeff2:  [ 1.48247525e+00  6.89251253e-02  2.21795085e-02 -3.86516723e-04]
+Explained component: 0.006272677439002788
+Unexplained component: 0.21635130878345854
+Total gap: 0.22262398622246132
+
+ 
+ 
+
+Year  19
+Men vs Women
+Mean diff:  const    0.000000
+educ    -0.412102
+exp      0.254762
+exp2     8.597347
+dtype: float64
+Coeff1:  [ 1.46859424e+00  9.29817034e-02  3.47000998e-02 -5.31404720e-04]
+Coeff2:  [ 1.15216583e+00  1.09449947e-01  2.42415041e-02 -3.68452175e-04]
+Explained component: -0.03404630580191778
+Unexplained component: 0.19943583375971402
+Total gap: 0.16538952795779624
+
+
+Women vs Men
+Mean diff:  const    0.000000
+educ     0.412102
+exp     -0.254762
+exp2    -8.597347
+dtype: float64
+Coeff1:  [ 1.15216583e+00  1.09449947e-01  2.42415041e-02 -3.68452175e-04]
+Coeff2:  [ 1.46859424e+00  9.29817034e-02  3.47000998e-02 -5.31404720e-04]
+Explained component: 0.04209639495082063
+Unexplained component: -0.20748592290861678
+Total gap: -0.16538952795779616
+
+
+Overall vs Men
+Mean diff:  const    0.000000
+educ     0.203150
+exp     -0.125588
+exp2    -4.238150
+dtype: float64
+Coeff1:  [ 1.37987375e+00  9.65502342e-02  3.03603240e-02 -4.68259201e-04]
+Coeff2:  [ 1.46859424e+00  9.29817034e-02  3.47000998e-02 -5.31404720e-04]
+Explained component: 0.01778582102585169
+Unexplained component: -0.09192779875662421
+Total gap: -0.07414197773077252
+
+
+Overall vs Women
+Mean diff:  const    0.000000
+educ    -0.208952
+exp      0.129175
+exp2     4.359198
+dtype: float64
+Coeff1:  [ 1.37987375e+00  9.65502342e-02  3.03603240e-02 -4.68259201e-04]
+Coeff2:  [ 1.15216583e+00  1.09449947e-01  2.42415041e-02 -3.68452175e-04]
+Explained component: -0.01829381042738379
+Unexplained component: 0.10954136065440745
+Total gap: 0.09124755022702366
+
+ 
+ 
+

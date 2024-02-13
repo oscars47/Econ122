@@ -1,0 +1,32 @@
+Year  79
+Male Veteran vs Non-Veteran
+Mean diff:  const      0.000000
+educ       0.332356
+exp       11.874205
+exp2     414.758154
+dtype: float64
+Coeff1:  [ 1.89126694e+00  5.63851074e-02  3.66231141e-02 -6.01945322e-04]
+Coeff2:  [ 1.69241477e+00  6.43346870e-02  4.31766408e-02 -7.19790447e-04]
+Explained component: 0.203948572316797
+Unexplained component: 0.0556808375985334
+Total gap: 0.2596294099153304
+
+ 
+ 
+
+Year  19
+Male Veteran vs Non-Veteran
+Mean diff:  const    0.000000
+educ    -0.006657
+exp     -0.100664
+exp2    -4.499779
+dtype: float64
+Coeff1:  [ 1.40168928e+00  9.58388711e-02  2.91808721e-02 -4.46321876e-04]
+Coeff2:  [ 1.38250270e+00  9.60462425e-02  3.10872547e-02 -4.85024289e-04]
+Explained component: -0.0015670833084194665
+Unexplained component: 0.0010630856738693684
+Total gap: -0.0005039976345500982
+
+ 
+ 
+
