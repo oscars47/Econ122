@@ -113,12 +113,29 @@ def run_WLS(X, y, w, print_summary=True):
         print(robust_model.summary())
     return robust_model
 
-def oaxaca_blinder(X1, X2, y1, y2, w1, w2):
-    '''performs an Oaxaca-Blinder decomposition of the mean differences in characteristics and the mean differences in coefficients between two groups'''
+def oaxaca_blinder(X1, X2, y1, y2, w1, w2, comparison=0):
+    '''performs an Oaxaca-Blinder decomposition of the mean differences in characteristics and the mean differences in coefficients between two groups.
 
-    # Mean differences in characteristics
-    mean_diff = sm.add_constant(X1).mean() - sm.add_constant(X2).mean()
-    print('Mean diff: ', mean_diff)
+    Params:
+        X1: independent variables for group 1
+        X2: independent variables for group 2
+        y1: dependent variable for group 1
+        y2: dependent variable for group 2
+        w1: weights for group 1
+        w2: weights for group 2
+        comparison: int, 0 for group 1 as the reference group, 1 for group 2 as the reference group, and 2 for the average of the two groups as the reference group
+    
+    
+    '''
+
+    # weighted mean differences in characteristics
+    # add constant
+    X1 = sm.add_constant(X1)
+    X2 = sm.add_constant(X2)
+    X1_mean = np.average(X1, weights=w1, axis=0)
+    X2_mean = np.average(X2, weights=w2, axis=0)
+    mean_diff = X1_mean - X2_mean
+    
 
     # run WLS
     model1 = run_WLS(X1, y1, w1, print_summary=False)
@@ -132,8 +149,17 @@ def oaxaca_blinder(X1, X2, y1, y2, w1, w2):
     print('Coeff2: ', coeff2)
 
     # Decomposition
-    explained = mean_diff.dot(coeff1)
-    unexplained = (sm.add_constant(X2).mean().dot(coeff1 - coeff2))
+    if comparison == 0:
+        explained = mean_diff.dot(coeff2)
+        unexplained = (X1_mean.dot(coeff1 - coeff2))
+
+    elif comparison == 1:
+        explained = mean_diff.dot(coeff1)
+        unexplained = (X2_mean.dot(coeff1 - coeff2))
+
+    elif comparison == 2:
+        explained = mean_diff.dot((coeff1 + coeff2) / 2)
+        unexplained = ((X1_mean + X2_mean).dot(coeff1 - coeff2)/2)
 
     # Print results
     print(f"Explained component: {explained}")
@@ -141,6 +167,7 @@ def oaxaca_blinder(X1, X2, y1, y2, w1, w2):
 
     # total gap
     print(f"Total gap: {explained + unexplained}")
+        
 
 def compute_marginal_effects(model, X, eps=1e-6):
     '''computes marginal effects manually for a model'''
