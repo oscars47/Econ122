@@ -5,6 +5,7 @@ import numpy as np
 import statsmodels.api as sm
 from sklearn import linear_model
 from scipy.stats import norm
+from copy import deepcopy
 
 def summarize(col, weight=None):
     '''summarizes a column of data, including mean, median, standard deviation, variance, 25th, 50th, and 75th percentiles, skewness, kurtosis, min, and max. If weight is provided, it will also calculate the weighted mean, weighted standard deviation, and weighted variance.
@@ -18,10 +19,12 @@ def summarize(col, weight=None):
     if weight is None:
         col = col[~np.isnan(col)]
     else:
-        col = col[~np.isnan(col) & ~np.isnan(weight)]
-        weight = weight[~np.isnan(col) & ~np.isnan(weight)]
+        col_new = col[~np.isnan(col) & ~np.isnan(weight)]
+        weight_new = weight[~np.isnan(col) & ~np.isnan(weight)]
         # make sure col and weight are the same length
-        assert len(col) == len(weight)
+        assert len(col_new) == len(weight_new)
+        col = col_new
+        weight = weight_new
 
     print('Num observations: ', len(col))
     if type(col) != pd.Series:
@@ -59,7 +62,7 @@ def summarize(col, weight=None):
     print("Min: ", col.min())
     print("Max: ", col.max())
 
-def prepare_data(dataframe, condition, X_cols, Y_col, W_col, return_dataframe=False):
+def prepare_data(dataframe, condition, X_cols, Y_col, W_col_dep, W_col_indep, return_dataframe=False):
     '''Creates X, y, and w for a weighted least squares regression.
 
     Params:
@@ -67,36 +70,41 @@ def prepare_data(dataframe, condition, X_cols, Y_col, W_col, return_dataframe=Fa
         condition: np.array
         X_cols: list
         Y_col: str
-        W_col: str
+        W_col_dep: str for weights for the dependent variable
+        W_col_indep: str for weights for the independent variables
         return_dataframe: bool, whether to return the dataframe with the condition applied
 
     '''
 
-    y = dataframe[Y_col]
-    X = dataframe[X_cols]
-    w = dataframe[W_col]
+    y = deepcopy(dataframe[Y_col])
+    X = deepcopy(dataframe[X_cols])
+    w_dep = deepcopy(dataframe[W_col_dep])
+    w_indep = deepcopy(dataframe[W_col_indep])
 
     y = y.astype(float)
     X = X.astype(float)
-    w = w.astype(float)
+    w_dep = w_dep.astype(float)
+    w_indep = w_indep.astype(float)
 
     # make sure no NaN values
     if condition is not None:
         y = y[condition]
         X = X[condition]
-        w = w[condition]
+        w_dep = w_dep[condition]
+        w_indep = w_indep[condition]
 
-    y = y[(~np.isnan(w)) & (~np.isnan(y)) & (~np.isnan(X).any(axis=1))]
-    X = X[(~np.isnan(w)) & (~np.isnan(y)) & (~np.isnan(X).any(axis=1))]
-    w = w[(~np.isnan(w)) & (~np.isnan(y)) & (~np.isnan(X).any(axis=1))]
+    y = y[(~np.isnan(w_dep)) & (~np.isnan(w_indep))& (~np.isnan(y)) & (~np.isnan(X).any(axis=1))]
+    X = X[(~np.isnan(w_dep)) & (~np.isnan(w_indep)) & (~np.isnan(y)) & (~np.isnan(X).any(axis=1))]
+    w_dep = w_dep[(~np.isnan(w_dep)) & (~np.isnan(w_indep)) & (~np.isnan(y)) & (~np.isnan(X).any(axis=1))]
+    w_indep = w_indep[(~np.isnan(w_dep)) & (~np.isnan(w_indep)) & (~np.isnan(y)) & (~np.isnan(X).any(axis=1))]
 
     if return_dataframe:
         if condition is not None:
-            return X, y, w, dataframe[condition]
+            return X, y, w_dep, w_indep, dataframe[condition]
         else:
-            return X, y, w, dataframe
+            return X, y, w_dep, w_indep, dataframe
     else:
-        return X, y, w
+        return X, y, w_dep, w_indep
 
 def run_WLS(X, y, w, print_summary=True):
     '''runs a weighted least squares regression'''
@@ -113,7 +121,7 @@ def run_WLS(X, y, w, print_summary=True):
         print(robust_model.summary())
     return robust_model
 
-def oaxaca_blinder(X1, X2, y1, y2, w1, w2, comparison=0):
+def oaxaca_blinder(X1, X2, y1, y2, w1_dep, w1_indep, w2_dep, w2_indep, comparison=0):
     '''performs an Oaxaca-Blinder decomposition of the mean differences in characteristics and the mean differences in coefficients between two groups.
 
     Params:
@@ -121,8 +129,10 @@ def oaxaca_blinder(X1, X2, y1, y2, w1, w2, comparison=0):
         X2: independent variables for group 2
         y1: dependent variable for group 1
         y2: dependent variable for group 2
-        w1: weights for group 1
-        w2: weights for group 2
+        w1_dep: weights for dependent vars group 1
+        w1_indep: weights for independent vars group 2
+        w2_dep: weights for dependent vars group 2
+        w2_indep: weights for independent vars group 2
         comparison: int, 0 for group 1 as the reference group, 1 for group 2 as the reference group, and 2 for the average of the two groups as the reference group
     
     
@@ -132,14 +142,14 @@ def oaxaca_blinder(X1, X2, y1, y2, w1, w2, comparison=0):
     # add constant
     X1 = sm.add_constant(X1)
     X2 = sm.add_constant(X2)
-    X1_mean = np.average(X1, weights=w1, axis=0)
-    X2_mean = np.average(X2, weights=w2, axis=0)
+    X1_mean = np.average(X1, weights=w1_indep, axis=0)
+    X2_mean = np.average(X2, weights=w2_indep, axis=0)
     mean_diff = X1_mean - X2_mean
     
 
     # run WLS
-    model1 = run_WLS(X1, y1, w1, print_summary=False)
-    model2 = run_WLS(X2, y2, w2, print_summary=False)
+    model1 = run_WLS(X1, y1, w1_dep, print_summary=False)
+    model2 = run_WLS(X2, y2, w2_dep, print_summary=False)
 
     # Coefficients
     coeff1 = model1.params
@@ -152,6 +162,9 @@ def oaxaca_blinder(X1, X2, y1, y2, w1, w2, comparison=0):
     if comparison == 0:
         explained = mean_diff.dot(coeff2)
         unexplained = (X1_mean.dot(coeff1 - coeff2))
+        print(coeff1 - coeff2)
+        print('-----')
+        print(X1_mean)
 
     elif comparison == 1:
         explained = mean_diff.dot(coeff1)
