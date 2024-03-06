@@ -1,4 +1,4 @@
-### Readme file for econ 122 project.
+# Readme file for econ 122 project.
 
 ## Reference paper: 
 https://www.nature.com/articles/s41586-022-04996-4
@@ -18,8 +18,10 @@ https://www.nature.com/articles/s41586-022-04996-4
         - plot pop18 and the weights as well
     - comparing based on #bins = percentiles -- these are target classes. then compare `accuracy`
         - using first 400, got ~51% overlap with all 1 params
-        - using all of them, got 47%
+        - using all of them, got 47% -> ~44% since have to take into account how to compare clusters to percentiles
     - implemented random search, protected against keyboard error; running on desktop
+    - added X, y, combined.csv to ```proj/data/```
+    - added mapping for old cluster labels to new based on an argsort of the means of y per old cluster
 
 
 

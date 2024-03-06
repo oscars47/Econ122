@@ -396,6 +396,20 @@ def cluster(X, y, params, show_scatter=False, show_graph=False, param_name=None)
     # get the percentiles
     percentile = np.percentile(y, np.linspace(0, 100, len(cluster_sizes)+1))
     # which percentile does each county belong to
+    # find the mean within each cluster
+    y_means = np.zeros(len(cluster_sizes))
+    for i in range(len(cluster_sizes)):
+        y_means[i] = np.mean(y[clusters == i])
+    # reassign the clusters based on the relative values. 0 is the lowest, len(cluster_sizes) is the highest
+    y_means = np.argsort(y_means)
+    # log where each index went
+    # Create a mapping from old cluster labels to new ones based on sorted order
+    new_labels_mapping = np.zeros_like(y_means)
+    new_labels_mapping[np.arange(len(y_means))] = y_means # map the old indices to the new ones
+
+    # Apply the new mapping to the clusters array
+    clusters = new_labels_mapping[clusters]
+
     # decide based on the y value
     percentile_clusters = np.zeros(X.shape[0])
     for i in range(len(cluster_sizes)-1):
@@ -410,6 +424,7 @@ def cluster(X, y, params, show_scatter=False, show_graph=False, param_name=None)
     # get the overlap percentage
     overlap_percentage = np.sum(overlap) / len(X)
     print(f'Overlap Percentage: {overlap_percentage}')
+    print(f'Modularity: {modularity}')
 
     if show_scatter:
          # save the clusters
@@ -469,20 +484,20 @@ def random_params(shape):
 def optimize_params(X, y, n_iter=100):
     '''optimize the parameters for the similarity function'''
 
-    # get the initial parameters
-    init_params = random_params(X.shape[1])
-
-    # get the initial overlap percentage
-    overlap_percentage, clusters, modularity = cluster(X, y, init_params)
-
     random_func = partial(random_params, X.shape[1])
     cluster_func = partial(cluster, X, y)
+
+    # get the initial parameters
+    init_params = np.ones(X.shape[1])
+
+    # get the initial overlap percentage
+    overlap_percentage, clusters, modularity = cluster_func(init_params)
 
     # iterate to find the best parameters
     try:
         for i in trange(n_iter):
             print(f'Iteration: {i}')
-            new_params = random_func(X.shape[1])
+            new_params = random_func()
             new_overlap_percentage, new_clusters, new_modularity = cluster_func(new_params)
             if new_overlap_percentage > overlap_percentage:
                 overlap_percentage = new_overlap_percentage
@@ -512,12 +527,11 @@ if __name__ == '__main__':
     # plot_hist_sum()
     # create_X_y()
     X, y = np.load('data/X.npy', allow_pickle=True), np.load('data/y.npy', allow_pickle=True)
-
     optimize_params(X, y)
 
 
     # params = np.ones(X.shape[1])
-    # params = np.random.uniform(0, 1, X.shape[1])
-    # X_mini = X
-    # y_mini = y
-    # clusters = cluster(X_mini, y_mini, params, show_scatter=True, show_graph=True, param_name=f'_{len(X_mini)}_equal')
+    # # params = np.random.uniform(0, 1, X.shape[1])
+    # X_mini = X[:400]
+    # y_mini = y[:400]
+    # clusters = cluster(X_mini, y_mini, params, show_scatter=True, show_graph=False, param_name=f'_{len(X_mini)}_equal')
