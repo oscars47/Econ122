@@ -315,7 +315,7 @@ def plot_hist_sum(combined_path='data/combined.csv'):
 
 
 ## perform cluster analysis ##
-def create_X_y(df_path='data/combined.csv'):
+def create_X_y(df_path='data/combined.csv', make_hist=False, save_data=True):
     '''create X and y for clustering analysis'''
 
     df = pd.read_csv(df_path)
@@ -324,20 +324,48 @@ def create_X_y(df_path='data/combined.csv'):
 
     y = df['Household_Income_at_Age_35_rP_gP_p25']
     X = df.drop(columns=['county_name', 'county', 'Household_Income_at_Age_35_rP_gP_p25'])
+    print(X.columns, len(X.columns))
+
+    if make_hist:
+        # make histograms of the data
+        fig, ax = plt.subplots(6, 4, figsize=(15, 20))
+        ax = ax.ravel()
+        print(X.T.size)
+        for i, col in enumerate(X.columns):
+            ax[i].hist(X[col], bins=100, edgecolor='black')
+            ax[i].set_title(f'{X.columns[i]}')
+            ax[i].set_xlabel('Value')
+            ax[i].set_ylabel('Frequency')
+        plt.tight_layout()
+        plt.savefig('results/combined_hist_notnormalized.pdf')
 
     # normalize all columns of X 
     for col in X.columns:
         X[col] = (X[col] - X[col].mean()) / X[col].std()
 
-    # convert to numpy
+    if make_hist:
+        # make histograms of the data
+        fig, ax = plt.subplots(6, 4, figsize=(15, 20))
+        ax = ax.ravel()
+        print(X.T.size)
+        for i, col in enumerate(X.columns):
+            ax[i].hist(X[col], bins=100, edgecolor='black')
+            ax[i].set_title(f'{X.columns[i]}')
+            ax[i].set_xlabel('Value')
+            ax[i].set_ylabel('Frequency')
+        plt.tight_layout()
+        plt.savefig('results/combined_hist_normalized.pdf')
+
+     # convert to numpy
     X = X.to_numpy()
     y = y.to_numpy()
     X = X.astype(float)
     y = y.astype(float)
 
     # save X and y
-    np.save('data/X.npy', X)
-    np.save('data/y.npy', y)
+    if save_data:
+        np.save('data/X.npy', X)
+        np.save('data/y.npy', y)
 
 def compute_similarity(X, index1, index2, dim, param):
     ''' compute similarity between two counties for a specific dimension'''
@@ -484,6 +512,16 @@ def random_params(shape):
 def optimize_params(X, y, n_iter=100):
     '''optimize the parameters for the similarity function'''
 
+    col_names = ['num_below_p50', 'pop2018', 'ec_county', 'ec_se_county',
+       'child_ec_county', 'child_ec_se_county', 'ec_grp_mem_county',
+       'ec_high_county', 'ec_high_se_county', 'child_high_ec_county',
+       'child_high_ec_se_county', 'ec_grp_mem_high_county',
+       'exposure_grp_mem_county', 'exposure_grp_mem_high_county',
+       'child_exposure_county', 'child_high_exposure_county',
+       'bias_grp_mem_county', 'bias_grp_mem_high_county', 'child_bias_county',
+       'child_high_bias_county', 'clustering_county', 'support_ratio_county',
+       'volunteering_rate_county', 'civic_organizations_county']
+
     random_func = partial(random_params, X.shape[1])
     cluster_func = partial(cluster, X, y)
 
@@ -510,16 +548,30 @@ def optimize_params(X, y, n_iter=100):
     except KeyboardInterrupt:
         print(f'Best Overlap Percentage: {overlap_percentage}')
         print(f'Best Modularity: {modularity}')
-        print(f'Best Parameters: {params}')
+        print(f'Best Parameters: {list(params)}')
+        
+        # get top 5 parameters
+        top_5 = np.argsort(params)[-5:]
+        print(f'Top 5 Parameters: {params[top_5]}')
+        # print out the corresponding column names
+        print(f'Top 5 Column Names: {[col_names[i] for i in top_5]}')
 
-        np.save('data/best_params.npy', params)
-        np.save('data/best_clusters.npy', clusters)
-        np.save('data/best_modularity.npy', modularity)
+
+        np.save(f'data/best_params_{overlap_percentage}.npy', params)
+        np.save(f'data/best_clusters_{overlap_percentage}.npy', clusters)
+        np.save(f'data/best_modularity_{overlap_percentage}.npy', modularity)
         return overlap_percentage, clusters, modularity, params
     
-    np.save('data/best_params.npy', params)
-    np.save('data/best_clusters.npy', clusters)
-    np.save('data/best_modularity.npy', modularity)
+     # get top 5 parameters
+    top_5 = np.argsort(params)[-5:]
+    print(f'Top 5 Parameters: {params[top_5]}')
+    # print out the corresponding column names
+    print(f'Top 5 Column Names: {[col_names[i] for i in top_5]}')
+
+
+    np.save(f'data/best_params_{overlap_percentage}.npy', params)
+    np.save(f'data/best_clusters_{overlap_percentage}.npy', clusters)
+    np.save(f'data/best_modularity_{overlap_percentage}.npy', modularity)
     return overlap_percentage, clusters, modularity, params
 
 if __name__ == '__main__':
@@ -527,7 +579,7 @@ if __name__ == '__main__':
     # plot_hist_sum()
     # create_X_y()
     X, y = np.load('data/X.npy', allow_pickle=True), np.load('data/y.npy', allow_pickle=True)
-    optimize_params(X, y)
+    optimize_params(X, y, n_iter=1000)
 
 
     # params = np.ones(X.shape[1])

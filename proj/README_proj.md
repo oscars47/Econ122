@@ -5,6 +5,11 @@ https://www.nature.com/articles/s41586-022-04996-4
 
 ## Updates
 
+### 3/6/24
+* after 100 random runs, got 49%
+* added find best 5 params and check which columns they correspond to
+    - have to fihgure out how to deal with unequal distributions... or is this a problem? thing is we want to distinguish from importance and reweighting based on distribution. *what if we try weighting based on distribution?*
+
 ### 3/5/24
 - to do
     - define similarity metric; 
