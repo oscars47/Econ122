@@ -9,13 +9,19 @@ import leidenalg as la
 from copy import deepcopy
 from tqdm import trange
 from functools import partial
+import xgboost as xgb
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
 
 ## plotting and getting statistics ##
-def get_combined_df(sc_data_path='data/social_capital_county.csv', um_data_path='data/cty_kfr_rP_gP_p25.csv'):
+def get_combined_df(sc_data_path='data/social_capital_county.csv', um_data_path='data/cty_kfr_rP_gP_p25.csv', name=None):
     '''creates merged dataset with social capital and mobility data'''
 
     df_sc = pd.read_csv(sc_data_path)
     df_um = pd.read_csv(um_data_path)
+
+    # rename last column to income
+    df_um = df_um.rename(columns={df_um.columns[-1]: 'income'})
 
     # get a combined dataset
     # the um has a cty prefix for the county name; need to remove to make it a float
@@ -34,7 +40,10 @@ def get_combined_df(sc_data_path='data/social_capital_county.csv', um_data_path=
             df[col] = df[col].astype(float)
 
     # save the combined dataset
-    df.to_csv('data/combined.csv', index=False)
+    if name is not None:
+        df.to_csv(f'data/combined_{name}.csv', index=False)
+    else:
+        df.to_csv('data/combined.csv', index=False)
 
 def plot_scatter(combined_path='data/combined.csv', colors = None, len_data_restrict = None, name=None):
     '''plot just the scatter plots of the combined dataset'''
@@ -172,8 +181,6 @@ def plot_scatter(combined_path='data/combined.csv', colors = None, len_data_rest
     else:
         plt.savefig(f'results/pop_scatter_{colors is None}_{len(df)}_{name}.pdf')
         
-
-
 def plot_hist_sum(combined_path='data/combined.csv'):
     '''plot histogram of the sum of mobility and social capital'''
 
@@ -315,16 +322,23 @@ def plot_hist_sum(combined_path='data/combined.csv'):
 
 
 ## perform cluster analysis ##
-def create_X_y(df_path='data/combined.csv', make_hist=False, save_data=True):
+def create_X_y(df_path='data/combined.csv', make_hist=False, save_data=True, name=None):
     '''create X and y for clustering analysis'''
 
     df = pd.read_csv(df_path)
     # randomly shuffle the data
-    df = df.sample(frac=1)
-
-    y = df['Household_Income_at_Age_35_rP_gP_p25']
-    X = df.drop(columns=['county_name', 'county', 'Household_Income_at_Age_35_rP_gP_p25'])
+    df = df.sample(frac=1, random_state=47)
+    if name is not None:
+        y = df['income']
+    else:
+        y = df['Household_Income_at_Age_35_rP_gP_p25']
+    print('len y:', len(y))
+    if name is not None:
+        X = df.drop(columns=['county_name', 'county', 'income'])
+    else:
+        X = df.drop(columns=['county_name', 'county', 'Household_Income_at_Age_35_rP_gP_p25'])
     print(X.columns, len(X.columns))
+    print(X.columns)
 
     if make_hist:
         # make histograms of the data
@@ -364,8 +378,12 @@ def create_X_y(df_path='data/combined.csv', make_hist=False, save_data=True):
 
     # save X and y
     if save_data:
-        np.save('data/X.npy', X)
-        np.save('data/y.npy', y)
+        if name is not None:
+            np.save(f'data/X_{name}.npy', X)
+            np.save(f'data/y_{name}.npy', y)
+        else:
+            np.save('data/X.npy', X)
+            np.save('data/y.npy', y)
 
 def compute_similarity(X, index1, index2, dim, param):
     ''' compute similarity between two counties for a specific dimension'''
@@ -574,12 +592,241 @@ def optimize_params(X, y, n_iter=100):
     np.save(f'data/best_modularity_{overlap_percentage}.npy', modularity)
     return overlap_percentage, clusters, modularity, params
 
+## XGBRegressor ##
+def prep_data(X, y, p=0.7):
+    # assign labels to X
+    labels = [ 'pop2018', 'ec', 'ec_se',
+       'child_ec', 'child_ec_se', 'ec_grp_mem',
+       'ec_high', 'ec_high_se', 'child_high_ec',
+       'child_high_ec_se', 'ec_grp_mem_high',
+       'exposure_grp_mem', 'exposure_grp_mem_high',
+       'child_exposure', 'child_high_exposure',
+       'bias_grp_mem', 'bias_grp_mem_high', 'child_bias',
+       'child_high_bias', 'clustering', 'support_ratio',
+       'volunteering_rate', 'civic_organizations']
+    
+    # binary classification: did county get out of bottom quintile?
+    # quintiles = [28007, 55000, 89744, 149131]
+    y = np.where(y>28007, 1, 0)
+    # y = np.digitize(y, quintiles)
+    # print(np.unique(y, return_counts=True))
+
+    # split so there is a consistent number of each class in the training and validation set
+    # get the number of each class
+    num_classes = np.unique(y, return_counts=True)[1]
+    print(num_classes)
+    # get the number of each class in the training and validation set
+
+    # take log of support ratio, civic organizations
+    # X[:, -1] = np.log(X[:, -1])
+    # X[:, -2] = np.log(X[:, -2])
+    
+ 
+    X_tv, X_t, y_tv, y_t = train_test_split(
+    X, 
+    y, 
+    test_size=0.3,  # or whatever size you want the test set to be
+    stratify=y,     # This ensures stratification
+    random_state=42 # for reproducibility
+    )
+
+    # get weights
+    w_tv = X_tv[:, 0]
+    w_t = X_t[:, 0]
+    X_tv = X_tv[:, 1:]
+    X_t = X_t[:, 1:]
+
+    w_tv = np.where(w_tv > 0, w_tv, 0)
+    w_t = np.where(w_t > 0, w_t, 0)
+
+    # check number unique for y_tv and y_t
+    print(np.unique(y_tv, return_counts=True))
+    print(np.unique(y_t, return_counts=True))
+
+    # create data matrix
+    dtrain = xgb.DMatrix(X_tv, label=y_tv, weight=w_tv)
+    dtrain.feature_names = labels
+    dtest = xgb.DMatrix(X_t, label=y_t, weight=w_t)
+    dtest.feature_names = labels
+
+    return dtrain, dtest, y_t
+
+def run_XGB(X, y, save_name=None, p=0.7):
+    '''perform XGB regression
+    
+    Params:
+        X_tv (np.array): the training and validation data
+        y_tv (np.array): the training and validation labels
+        X_t (np.array): the test data
+        y_t (np.array): the test labels
+        save_name (str): the name to save the model
+    
+    '''
+
+    dtrain, dtest, y_t = prep_data(X, y, p=p)
+   
+
+    params = {
+    'max_depth': 100,
+    'eta': 0.4,
+    'objective': 'multi:softmax',
+    'eval_metric': 'mlogloss',
+    'num_class': 2,
+    }
+    
+
+    # Train the model
+    model = xgb.train(params, dtrain, num_boost_round=10000, evals=[(dtest, 'test')], early_stopping_rounds=100)
+    
+
+    # make predictions
+    y_pred = model.predict(dtest)
+    print(np.unique(y_pred, return_counts=True))
+    acc = np.sum(y_pred == y_t) / len(y_t)
+
+    cm = confusion_matrix(y_t, y_pred)
+
+    if save_name is not None:
+         # compute accuracy
+        # plot confusion matrix: y_true vs y_pred
+        print(cm)
+        plt.imshow(cm, cmap='Blues', interpolation='nearest')
+        plt.colorbar()
+        plt.title(f'Confusion Matrix, Accuracy: {acc:.2f}')
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+        plt.xticks([0, 1], ['Q1', 'Q2'])
+        plt.yticks([0, 1], ['Q1', 'Q2'])
+        # add text for percent values
+        thresh = cm.max() / 2
+        for i in range(cm.shape[0]):
+            for j in range(cm.shape[1]):
+                print(np.sum(cm[:,j]))
+                # jth col
+                print(cm[:j])
+                percent = f'{cm[i, j] / np.sum(cm[:,j]):.2f}'
+                # percent = f'{cm[i, j] / np.sum(cm[i]):.2f}'
+                plt.text(j, i, percent, ha='center', va='center', color='white' if cm[i, j] > thresh else 'black')
+        plt.savefig(f'results/xgb_{save_name}.pdf')
+        model.save_model(f'models/xgb_{save_name}.json')
+
+        # plot the importance matrix
+        xgb.plot_importance(model, grid=False, importance_type='weight')
+        plt.tight_layout()
+        plt.savefig(f'results/xgb_importance_{save_name}.pdf')
+
+    return model, acc, cm
+
+   
+
+def run_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
+    '''performs the XGB classification and compares outputs'''
+    
+
+    model_male, acc_male, cm_male = run_XGB(X_male, y_male, p=p)
+    model_female, acc_female, cm_female = run_XGB(X_female, y_female, p=p)
+
+    # compare their CMs
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    ax = ax.ravel()
+    cax0 = ax[0].imshow(cm_male, cmap='Blues', interpolation='nearest')
+    fig.colorbar(cax0, ax=ax[0])
+    cax1 = ax[1].imshow(cm_female, cmap='Blues', interpolation='nearest')
+    fig.colorbar(cax1, ax=ax[1])
+
+    thresh = cm_male.max() / 2
+    for i in range(cm_male.shape[0]):
+        for j in range(cm_male.shape[1]):
+            percent = f'{cm_male[i, j] / np.sum(cm_male[:,j]):.2f}'
+            # percent = f'{cm[i, j] / np.sum(cm[i]):.2f}'
+            ax[0].text(j, i, percent, ha='center', va='center', color='white' if cm_male[i, j] > thresh else 'black')
+
+    thresh = cm_female.max() / 2
+    for i in range(cm_female.shape[0]):
+        for j in range(cm_female.shape[1]):
+            percent = f'{cm_female[i, j] / np.sum(cm_female[:,j]):.2f}'
+            # percent = f'{cm[i, j] / np.sum(cm[i]):.2f}'
+            ax[1].text(j, i, percent, ha='center', va='center', color='white' if cm_female[i, j] > thresh else 'black')
+
+    ax[0].set_title(f'Confusion Matrix, Accuracy: {acc_male:.2f}')
+    ax[0].set_xlabel('Predicted')
+    ax[0].set_ylabel('True')
+    ax[0].set_xticks([0, 1], ['Q1', 'Q2'])
+    ax[0].set_yticks([0, 1], ['Q1', 'Q2'])
+
+
+    ax[1].set_title(f'Confusion Matrix, Accuracy: {acc_female:.2f}')
+    ax[1].set_xlabel('Predicted')
+    ax[1].set_ylabel('True')
+    ax[1].set_xticks([0, 1], ['Q1', 'Q2'])
+    ax[1].set_yticks([0, 1], ['Q1', 'Q2'])
+
+    plt.tight_layout()
+    plt.savefig(f'results/xgb_comparison.pdf')
+
+
+
+
+    # Extract feature importance for both models
+    importance_male = model_male.get_score(importance_type='weight')
+    importance_female = model_female.get_score(importance_type='weight')
+
+    # Convert to DataFrame for easier handling
+    df_importance_male = pd.DataFrame({'Feature': list(importance_male.keys()), 'Importance male': list(importance_male.values())})
+
+    df_importance_female = pd.DataFrame({'Feature': list(importance_female.keys()), 'Importance female': list(importance_female.values())})
+
+    df_merged = pd.merge(df_importance_male, df_importance_female, on='Feature', how='outer').fillna(0)
+
+    # sort by male importance
+    df_merged = df_merged.sort_values(by='Importance male', ascending=False)
+
+    # Plotting
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Set the positions and width for the bars
+    positions = range(len(df_merged))
+    width = 0.4
+
+    # Plotting both importances
+    plt.bar([p - width/2 for p in positions], df_merged['Importance male'], width, label='Male')
+    plt.bar([p + width/2 for p in positions], df_merged['Importance female'], width, label='Female')
+
+    # Adding labels, title, and legend
+    plt.xticks(positions, df_merged['Feature'], rotation=90)
+    plt.xlabel('Feature')
+    plt.ylabel('Importance (F-Score)')
+    plt.title('Feature Importance Comparison')
+    plt.legend()
+
+    # Show plot
+    plt.tight_layout()
+    plt.savefig('results/feature_importance_comparison.pdf')
+
 if __name__ == '__main__':
+    get_combined_df(um_data_path='data/cty_kfr_rP_gF_p25.csv', name='female')
+    get_combined_df(um_data_path='data/cty_kfr_rP_gM_p25.csv', name='male')
+
+    # get X, y
+    create_X_y(df_path='data/combined_female.csv', save_data=True, make_hist=False, name='female')
+    create_X_y(df_path='data/combined_male.csv', save_data=True, make_hist=False, name='male')
+
+    X_male, y_male = np.load('data/X_male.npy', allow_pickle=True), np.load('data/y_male.npy', allow_pickle=True)
+
+    X_female, y_female = np.load('data/X_female.npy', allow_pickle=True), np.load('data/y_female.npy', allow_pickle=True)
+
+    # run_XGB(X_male, y_male, save_name='male')
+    # run_XGB(X_female, y_female, save_name='female')
+    run_XGB_MF(X_male, y_male, X_female, y_female)
+
+
+
     # get_combined_df()
     # plot_hist_sum()
-    # create_X_y()
-    X, y = np.load('data/X.npy', allow_pickle=True), np.load('data/y.npy', allow_pickle=True)
-    optimize_params(X, y, n_iter=1000)
+    # create_X_y(save_data=False, make_hist=False)
+    # X, y = np.load('data/X.npy', allow_pickle=True), np.load('data/y.npy', allow_pickle=True)
+    # optimize_params(X, y, n_iter=1000)
+    # run_XGB(X, y, save_name='all_0')
 
 
     # params = np.ones(X.shape[1])
