@@ -5,6 +5,48 @@ https://www.nature.com/articles/s41586-022-04996-4
 
 ## Updates
 
+## 3/27/24
+* intepreting male-female difference.
+    - predict not accuracy but predicted percentage. hope is that goes a lot closer to females than male; difference in coefficients is why women are more likely to escape; and then do other way. if women acted like men, how much fewer of them
+        ```
+        female XGB predicting males: 0.679184202007122, male XGB predicting females: 0.5412754936872775
+        male XGB predicting males: 0.5412754936872775, female XGB predicting females: 0.610877306571706
+        male diff (true - predicted with reverse model): -0.198769828423438, female diff (true - predicted with reverse model): 0.06960181288442857
+        ```
+        - interpreting this: We see that if the male input values were treated like females, roughly 20% more should succeed than actually do. Moreover, the male model predicts about 7% fewer females should succeed than actually do. This analysis reveals that females are rewarded more for social capital than men are.
+
+    - put the 0.7 in appendix (?) or just make a footnote about econ convention
+    - need fixed labels.
+    - add min/max for data tables
+
+## 3/25/24
+* wrote lit review, from that gathered that network effects should be more pronounced for men than women, contrary to my results
+* steinberger fix data section:
+    - rerunning plots for models as well as predicting with males with female model and vice versa. running p=.7 and p=1
+
+        p=0.7
+            - ```female XGB predicting males: 0.6828478964401294, male XGB predicting females: 0.7454153182308522
+            male XGB predicting males: 0.7411003236245954, female XGB predicting females: 0.7874865156418555
+            male diff: 0.058252427184465994, female diff: 0.04207119741100329```
+
+        p=1
+            - ```female XGB predicting males: 0.7325995467788928, male XGB predicting females: 0.710262220783425
+            male XGB predicting males: 0.7584978957591454, female XGB predicting females: 0.8138556167044351
+            male diff: 0.02589834898025256, female diff: 0.10359339592101002```
+
+## 3/22/24
+* meeting
+    - analysis is on counties
+        - how to see working women **
+    - clarify the se is smaller for smaller
+    - run females through the males to see how well prediction matches up
+    - se makes sense because it is a measure of cliques.
+    - what steinberger wants:
+        - run on all data then report test separately
+        - put WLS first so we establish what economists are familiar w
+        - then show how XGB exceeds: in cm, note how male being linear really fails whereas for females linear does not as bad, comparing the diagonal percentages
+        - make the feature importance 2 separate plots; discuss how this gives us insight
+        
 ## 3/18/24
 * got tables of data for paper
     - i forgot the social capital data is the same for males and females since it is by county and we can't get gender; what does change is the upward mobility

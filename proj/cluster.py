@@ -14,6 +14,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 import statsmodels.api as sm
 
+
 # https://www.taxpolicycenter.org/statistics/household-income-quintiles
 MEAN_SEC_FIFTH = 32631
 
@@ -484,6 +485,11 @@ def create_X_y(df_path='data/combined.csv', make_hist=False, save_data=True, nam
         X = df.drop(columns=['county_name', 'county', 'income'])
     else:
         X = df.drop(columns=['county_name', 'county', 'Household_Income_at_Age_35_rP_gP_p25'])
+
+    # drop all se columns
+    # X = X.drop(columns=[col for col in X.columns if 'se' in col])
+
+    
     print(X.columns, len(X.columns))
     print(X.columns)
 
@@ -742,6 +748,78 @@ def optimize_params(X, y, n_iter=100):
     return overlap_percentage, clusters, modularity, params
 
 ## XGBRegressor ##
+def prep_data_XGB(X, y, p=0.7):
+    # assign labels to X
+    labels = [ 'pop2018', 'ec', 'ec_se',
+    'child_ec', 'child_ec_se', 'ec_grp_mem',
+    'ec_high', 'ec_high_se', 'child_high_ec',
+    'child_high_ec_se', 'ec_grp_mem_high',
+    'exposure_grp_mem', 'exposure_grp_mem_high',
+    'child_exposure', 'child_high_exposure',
+    'bias_grp_mem', 'bias_grp_mem_high', 'child_bias',
+    'child_high_bias', 'clustering', 'support_ratio',
+    'volunteering_rate', 'civic_organizations']
+
+    # remove _se columns
+    # labels = [label for label in labels if 'se' not in label]
+
+    
+    # binary classification: did county get out of bottom quintile?
+    # quintiles = [28007, 55000, 89744, 149131]
+    y = np.where(y>MEAN_SEC_FIFTH, 1, 0)
+
+    # y = np.digitize(y, quintiles)
+    # print(np.unique(y, return_counts=True))
+
+    # check wherever there is a nan in some column per row in X, remove that row
+    # y = y[~np.isnan(X).any(axis=1)]
+    # X = X[~np.isnan(X).any(axis=1)]
+
+    # split so there is a consistent number of each class in the training and validation set
+    # get the number of each class
+    num_classes = np.unique(y, return_counts=True)[1]
+    print(num_classes)
+    # get the number of each class in the training and validation set
+
+    # take log of support ratio, civic organizations
+    # X[:, -1] = np.log(X[:, -1])
+    # X[:, -2] = np.log(X[:, -2])
+    
+    if p < 1:
+        X_tv, X_t, y_tv, y_t = train_test_split(
+        X, 
+        y, 
+        test_size=1-p,  # or whatever size you want the test set to be
+        stratify=y,     # This ensures stratification
+        random_state=42 # for reproducibility
+        )
+    else:
+        X_tv = X
+        y_tv = y
+        X_t = X
+        y_t = y
+
+    # get weights
+    w_tv = X_tv[:, 0]
+    w_t = X_t[:, 0]
+    X_tv = X_tv[:, 1:]
+    X_t = X_t[:, 1:]
+
+    w_tv = np.where(w_tv > 0, w_tv, 0)
+    w_t = np.where(w_t > 0, w_t, 0)
+
+    # check number unique for y_tv and y_t
+    print(np.unique(y_tv, return_counts=True))
+    print(np.unique(y_t, return_counts=True))
+
+    # create data matrix
+    dtrain = xgb.DMatrix(X_tv, label=y_tv, weight=w_tv)
+    dtrain.feature_names = labels
+    dtest = xgb.DMatrix(X_t, label=y_t, weight=w_t)
+    dtest.feature_names = labels
+
+    return dtrain, dtest, y_t
+
 def run_XGB(X, y, save_name=None, p=0.7):
     '''perform XGB regression
     
@@ -753,69 +831,9 @@ def run_XGB(X, y, save_name=None, p=0.7):
         save_name (str): the name to save the model
     
     '''
-    def prep_data(X, y, p=0.7):
-        # assign labels to X
-        labels = [ 'pop2018', 'ec', 'ec_se',
-        'child_ec', 'child_ec_se', 'ec_grp_mem',
-        'ec_high', 'ec_high_se', 'child_high_ec',
-        'child_high_ec_se', 'ec_grp_mem_high',
-        'exposure_grp_mem', 'exposure_grp_mem_high',
-        'child_exposure', 'child_high_exposure',
-        'bias_grp_mem', 'bias_grp_mem_high', 'child_bias',
-        'child_high_bias', 'clustering', 'support_ratio',
-        'volunteering_rate', 'civic_organizations']
-        
-        # binary classification: did county get out of bottom quintile?
-        # quintiles = [28007, 55000, 89744, 149131]
-        y = np.where(y>MEAN_SEC_FIFTH, 1, 0)
-        # y = np.digitize(y, quintiles)
-        # print(np.unique(y, return_counts=True))
-
-        # check wherever there is a nan in some column per row in X, remove that row
-        # y = y[~np.isnan(X).any(axis=1)]
-        # X = X[~np.isnan(X).any(axis=1)]
-
-        # split so there is a consistent number of each class in the training and validation set
-        # get the number of each class
-        num_classes = np.unique(y, return_counts=True)[1]
-        print(num_classes)
-        # get the number of each class in the training and validation set
-
-        # take log of support ratio, civic organizations
-        # X[:, -1] = np.log(X[:, -1])
-        # X[:, -2] = np.log(X[:, -2])
-        
     
-        X_tv, X_t, y_tv, y_t = train_test_split(
-        X, 
-        y, 
-        test_size=0.3,  # or whatever size you want the test set to be
-        stratify=y,     # This ensures stratification
-        random_state=42 # for reproducibility
-        )
 
-        # get weights
-        w_tv = X_tv[:, 0]
-        w_t = X_t[:, 0]
-        X_tv = X_tv[:, 1:]
-        X_t = X_t[:, 1:]
-
-        w_tv = np.where(w_tv > 0, w_tv, 0)
-        w_t = np.where(w_t > 0, w_t, 0)
-
-        # check number unique for y_tv and y_t
-        print(np.unique(y_tv, return_counts=True))
-        print(np.unique(y_t, return_counts=True))
-
-        # create data matrix
-        dtrain = xgb.DMatrix(X_tv, label=y_tv, weight=w_tv)
-        dtrain.feature_names = labels
-        dtest = xgb.DMatrix(X_t, label=y_t, weight=w_t)
-        dtest.feature_names = labels
-
-        return dtrain, dtest, y_t
-
-    dtrain, dtest, y_t = prep_data(X, y, p=p)
+    dtrain, dtest, y_t = prep_data_XGB(X, y, p=p)
    
 
     params = {
@@ -949,52 +967,59 @@ def run_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     plt.tight_layout()
     plt.savefig('results/feature_importance_comparison.pdf')
 
-def run_regression(X, y, p= 0.7):
-    '''run regression to determine relative importance of features'''
-    def prep_data(X, y):
-        # remove nans
-        # X = X[~np.isnan(X)]
-        # y = y[~np.isnan(y)]
-        y = np.where(y>MEAN_SEC_FIFTH, 1, 0)
-        # y = np.digitize(y, quintiles)
-        # print(np.unique(y, return_counts=True))
+def prep_data_reg(X, y, p):
+    # remove nans
+    # X = X[~np.isnan(X)]
+    # y = y[~np.isnan(y)]
+    y = np.where(y>MEAN_SEC_FIFTH, 1, 0)
+    # y = np.digitize(y, quintiles)
+    # print(np.unique(y, return_counts=True))
 
-        # check wherever there is a nan in some column per row in X, remove that row
-        y = y[~np.isnan(X).any(axis=1)]
-        X = X[~np.isnan(X).any(axis=1)]
-        
-
-        # split so there is a consistent number of each class in the training and validation set
-        # get the number of each class
-        num_classes = np.unique(y, return_counts=True)[1]
-        print(num_classes)
-        # get the number of each class in the training and validation set
-
-        # take log of support ratio, civic organizations
-        # X[:, -1] = np.log(X[:, -1])
-        # X[:, -2] = np.log(X[:, -2])
-        
+    # check wherever there is a nan in some column per row in X, remove that row
+    y = y[~np.isnan(X).any(axis=1)]
+    X = X[~np.isnan(X).any(axis=1)]
     
+
+    # split so there is a consistent number of each class in the training and validation set
+    # get the number of each class
+    num_classes = np.unique(y, return_counts=True)[1]
+    print(num_classes)
+    # get the number of each class in the training and validation set
+
+    # take log of support ratio, civic organizations
+    # X[:, -1] = np.log(X[:, -1])
+    # X[:, -2] = np.log(X[:, -2])
+    
+    if p < 1:
         X_tv, X_t, y_tv, y_t = train_test_split(
         X, 
         y, 
-        test_size=0.3,  # or whatever size you want the test set to be
+        test_size=1-p,  # or whatever size you want the test set to be
         stratify=y,     # This ensures stratification
         random_state=42 # for reproducibility
         )
+    else:
+        X_tv = X
+        y_tv = y
+        X_t = X
+        y_t = y
 
-        # get weights
-        w_tv = X_tv[:, 0]
-        w_t = X_t[:, 0]
-        X_tv = X_tv[:, 1:]
-        X_t = X_t[:, 1:]
+    # get weights
+    w_tv = X_tv[:, 0]
+    w_t = X_t[:, 0]
+    X_tv = X_tv[:, 1:]
+    X_t = X_t[:, 1:]
 
-        w_tv = np.where(w_tv > 0, w_tv, 0)
-        w_t = np.where(w_t > 0, w_t, 0)
+    w_tv = np.where(w_tv > 0, w_tv, 0)
+    w_t = np.where(w_t > 0, w_t, 0)
 
-        return X_tv, X_t, y_tv, y_t, w_tv, w_t
+    return X_tv, X_t, y_tv, y_t, w_tv, w_t
+
+def run_regression(X, y, p= 0.7):
+    '''run regression to determine relative importance of features'''
     
-    X_tv, X_t, y_tv, y_t, w_tv, w_t = prep_data(X, y)
+    
+    X_tv, X_t, y_tv, y_t, w_tv, w_t = prep_data_reg(X, y, p)
 
     # create the model; 
     def fit_model_r2(X, y, w, X_t, y_t, w_t):
@@ -1026,9 +1051,9 @@ def run_regression(X, y, p= 0.7):
 
         # get R^2
         r2 = robust_model.rsquared
-        return r2, acc, cm
+        return r2, acc, cm, robust_model
     
-    r2_total, total_acc, total_cm = fit_model_r2(X_tv, y_tv, w_tv, X_t, y_t, w_t)
+    r2_total, total_acc, total_cm, total_model = fit_model_r2(X_tv, y_tv, w_tv, X_t, y_t, w_t)
 
     # get performance
     
@@ -1037,7 +1062,7 @@ def run_regression(X, y, p= 0.7):
     acc_features = []
     for i in range(X_tv.shape[1]):
         # add the ith feature
-        r2, acc, _ = fit_model_r2(X_tv[:, i], y_tv, w_tv, X_t[:, i], y_t, w_t)
+        r2, acc, _, _ = fit_model_r2(X_tv[:, i], y_tv, w_tv, X_t[:, i], y_t, w_t)
         r2_features.append(r2)
         acc_features.append(acc)
 
@@ -1053,16 +1078,18 @@ def run_regression(X, y, p= 0.7):
        'bias_grp_mem', 'bias_grp_mem_high', 'child_bias',
        'child_high_bias', 'clustering', 'support_ratio',
        'volunteering_rate', 'civic_organizations']
-    print(len(labels), len(r2_frac), len(acc_features))
+    
+    # labels = [label for label in labels if 'se' not in label]
+
     r2_frac_dict = dict(zip(labels, zip(r2_frac, acc_features)))
-    return r2_frac_dict, total_acc, total_cm
+    return r2_frac_dict, total_acc, total_cm, total_model
    
 def run_regression_MF(X_male, y_male, X_female, y_female, p=0.7):
     '''run regression to determine relative importance of features for males and females separately'''
 
-    r2_frac_dict_male, acc_male, cm_male = run_regression(X_male, y_male)
+    r2_frac_dict_male, acc_male, cm_male, model_male = run_regression(X_male, y_male)
 
-    r2_frac_dict_female, acc_female, cm_female = run_regression(X_female, y_female)
+    r2_frac_dict_female, acc_female, cm_female, model_female = run_regression(X_female, y_female)
 
     # plot the R^2 fractions. sort male by greatest to least. plot female in same order
     # sort male by greatest to least
@@ -1148,13 +1175,33 @@ def run_regression_MF(X_male, y_male, X_female, y_female, p=0.7):
     # plt.ylabel('Accuracy')
 
 def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
+    print(p)
 
     model_male, xgb_acc_male, xgb_cm_male = run_XGB(X_male, y_male, p=p)
     model_female, xgb_acc_female, xgb_cm_female = run_XGB(X_female, y_female, p=p)
 
-    r2_frac_dict_male, reg_acc_male, reg_cm_male = run_regression(X_male, y_male)
+    r2_frac_dict_male, reg_acc_male, reg_cm_male, male_model_reg = run_regression(X_male, y_male)
+    r2_frac_dict_female, reg_acc_female, reg_cm_female, female_model_reg = run_regression(X_female, y_female)
 
-    r2_frac_dict_female, reg_acc_female, reg_cm_female = run_regression(X_female, y_female)
+    # run the oaxaca blinder: how accurate is predicting the males with female coefficients and vice versa
+    dtrain_male, dtest_male, y_t_male = prep_data_XGB(X_male, y_male, p)
+    dtrain_female, dtest_female, y_t_female = prep_data_XGB(X_female, y_female, p)
+
+    male_XGB_pred_female = model_female.predict(dtest_male)
+    male_XGB_female = np.sum(male_XGB_pred_female) / len(y_t_female)
+    
+    female_XGB_pred_male = model_male.predict(dtest_female)
+    female_XGB_male= np.sum(female_XGB_pred_male) / len(y_t_female)
+
+    print(f'female XGB predicting males: {male_XGB_female}, male XGB predicting females: {female_XGB_male}') 
+
+    # female predicting female and male predicting male
+    male_XGB_pred_male = model_male.predict(dtest_male)
+    male_XGB_male = np.sum(male_XGB_pred_male) / len(y_t_male)
+   
+    print(f'male XGB predicting males: {male_XGB_male}, female XGB predicting females: {np.sum(y_t_female) / len(y_t_female)}') 
+
+    print(f'male diff: {np.sum(y_t_male) / len(y_t_male) - male_XGB_female}, female diff: {np.sum(y_t_female) / len(y_t_female) - female_XGB_male}')
 
     # compare their CMs
     fig, ax = plt.subplots(2, 2, figsize=(10, 10))
@@ -1226,7 +1273,7 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     ax[3].set_yticks([0, 1], ['B', 'A'])
 
     plt.tight_layout()
-    plt.savefig(f'results/regression_xgb_comparison.pdf')
+    plt.savefig(f'results/regression_xgb_comparison_{p}.pdf')
 
     # now make twin plots for the feature importance
     # Extract feature importance for both models
@@ -1259,6 +1306,8 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
 
     df_merged = pd.merge(df_xgb_merged, df_r2_merged, on='Feature', how='outer').fillna(0)
 
+    df_merged.to_csv('results/feature_importance_comparison_wls_xgb.csv')
+
     # sort by male importance xgb
     df_merged = df_merged.sort_values(by='Importance male', ascending=False)
 
@@ -1273,24 +1322,32 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     ax.bar([p - width/2 for p in positions], df_merged['Importance male'], width, label='XGB Male', alpha=0.5, color='red')
     ax.bar([p + width/2 for p in positions], df_merged['Importance female'], width, label='XGB Female', alpha=0.5, color='blue')
 
-    ax2 = ax.twinx()
-    ax2.bar([p - width/2 for p in positions], df_merged['R2 male'], width, label='WLS Male', alpha=0.5, color='magenta')
-    ax2.bar([p + width/2 for p in positions], df_merged['R2 female'], width, label='WLS Female', alpha=0.5, color='cyan')
-
-
+    # ax2 = ax.twinx()
+    # ax2.bar([p - width/2 for p in positions], df_merged['R2 male'], width, label='WLS Male', alpha=0.5, color='magenta')
+    # ax2.bar([p + width/2 for p in positions], df_merged['R2 female'], width, label='WLS Female', alpha=0.5, color='cyan')
 
     # Adding labels, title, and legend
     ax.set_xticks(positions, df_merged['Feature'], rotation=90)
-    ax.set_ylabel('F-Score')
-    ax2.set_ylabel('Fraction of $R^2$')
+    ax.set_ylabel('Number of Times Feature Used Across Trees')
+    # ax2.set_ylabel('Fraction of $R^2$')
 
     # plt.title('Feature Importance Comparison')
     ax.legend(loc='upper left')
-    ax2.legend(loc='upper right')
+    # ax2.legend(loc='upper right')
 
     # Show plot
     plt.tight_layout()
-    plt.savefig('results/feature_importance_comparison_wls_xgb.pdf')
+    plt.savefig(f'results/feature_importance_comparison_xgb_{p}.pdf')
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.bar([p - width/2 for p in positions], df_merged['R2 male'], width, label='WLS Male', alpha=0.5, color='magenta')
+    ax.bar([p + width/2 for p in positions], df_merged['R2 female'], width, label='WLS Female', alpha=0.5, color='cyan')
+
+    ax.set_xticks(positions, df_merged['Feature'], rotation=90)
+    ax.set_ylabel('Fraction of $R^2$')
+    ax.legend(loc='upper left')
+    plt.tight_layout()
+    plt.savefig(f'results/feature_importance_comparison_wls_{p}.pdf')
 
 
 if __name__ == '__main__':
@@ -1311,10 +1368,10 @@ if __name__ == '__main__':
     # run_regression_MF(X_male, y_male, X_female, y_female)
     
     # plot_upward_mobility(plot_male_female=True)
-    # run_regression_XGB_MF(X_male, y_male, X_female, y_female)
+    run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=1)
 
     # calculate percent of data above upper bound for lowest quintile
-    print(np.sum(y_male > MEAN_SEC_FIFTH) / len(y_male), np.sum(y_female > MEAN_SEC_FIFTH) / len(y_female))
+    # print(np.sum(y_male > MEAN_SEC_FIFTH) / len(y_male), np.sum(y_female > MEAN_SEC_FIFTH) / len(y_female))
 
 
     # get_combined_df()
