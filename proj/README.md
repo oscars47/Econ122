@@ -13,11 +13,11 @@ https://www.nature.com/articles/s41586-022-04996-4
         male XGB predicting males: 0.5412754936872775, female XGB predicting females: 0.610877306571706
         male diff (true - predicted with reverse model): -0.198769828423438, female diff (true - predicted with reverse model): 0.06960181288442857
         ```
-        - interpreting this: We see that if the male input values were treated like females, roughly 20% more should succeed than actually do. Moreover, the male model predicts about 7% fewer females should succeed than actually do. This analysis reveals that females are rewarded more for social capital than men are.
+        - interpreting this: We see that if the male input values were treated like females, roughly 20% more should succeed than actually do. Moreover, the male model predicts about 7% fewer females should succeed than actually do. This analysis reveals that females are rewarded more for social capital than men are, everything else the same in a county.
 
-    - put the 0.7 in appendix (?) or just make a footnote about econ convention
-    - need fixed labels.
-    - add min/max for data tables
+    - put the 0.7 in appendix (?) or just make a footnote about econ convention --> footnote 
+    - need fixed labels (got for XGB and regression output, as well as the histograms and datatables with min max)
+    - add min/max for data tables (got it)
 
 ## 3/25/24
 * wrote lit review, from that gathered that network effects should be more pronounced for men than women, contrary to my results

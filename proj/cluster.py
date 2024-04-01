@@ -192,7 +192,7 @@ def plot_hist_sum(combined_path='data/combined.csv'):
     df = pd.read_csv(combined_path)
     print(df.columns)
 
-    upward_mobility = df['Household_Income_at_Age_35_rP_gP_p25']
+    upward_mobility = df['income']
     weights = df['num_below_p50']
 
     ## economic connectedness data ##
@@ -222,9 +222,6 @@ def plot_hist_sum(combined_path='data/combined.csv'):
     ## civic engagement data ##
     volunteer_rate = df['volunteering_rate_county']
     civic_org = df['civic_organizations_county']
-
-    ## upward mobility data ##
-    upward_mobility = df['Household_Income_at_Age_35_rP_gP_p25']
 
 
     # first make hist of upward mobility
@@ -256,9 +253,12 @@ def plot_hist_sum(combined_path='data/combined.csv'):
     fig, ax = plt.subplots(6, 3, figsize=(15, 20))
     ax = ax.ravel()
     connectedness_cols = ['ec_county', 'ec_se_county', 'child_ec_county', 'child_ec_se_county', 'ec_grp_mem_county', 'ec_high_county', 'ec_high_se_county', 'child_high_ec_county', 'child_high_ec_se_county', 'ec_grp_mem_high_county', 'exposure_grp_mem_county', 'exposure_grp_mem_high_county', 'child_exposure_county', 'child_high_exposure_county', 'bias_grp_mem_county', 'bias_grp_mem_high_county', 'child_bias_county', 'child_high_bias_county']
+
+    connectedness_labels = ['Economic Connectedness', 'Economic Connectedness Standard Error', 'Child Economic Connectedness', 'Child Economic Connectedness Standard Error', 'Economic Connectedness by Group Membership', 'Economic Connectedness by High Income', 'Economic Connectedness by High Income Standard Error', 'Child Economic Connectedness by High Income', 'Child Economic Connectedness by High Income Standard Error', 'Economic Connectedness by Group Membership by High Income', 'Exposure Group Membership', 'Exposure by Group Membership High Income', 'Child Exposure', 'Child Exposure High Income', 'Bias Group Membership', 'Bias by Group Membership High Income', 'Child Bias', 'Child Bias by High Income']
+    
     for i, data in enumerate([ec, ec_se, child_ec, child_ec_se, ec_grp_mem, ec_high, ec_high_se, child_high_ec, child_high_ec_se, ec_grp_mem_high, exposure_grp_mem, exposure_grp_mem_high, child_exposure, child_exposure_high, bias_grp_mem, bias_grp_mem_high, child_bias, child_bias_high]):
         ax[i].hist(data, bins=100, edgecolor='black')
-        ax[i].set_title(f'{connectedness_cols[i]}')
+        ax[i].set_title(f'{connectedness_labels[i]}')
 
         # drop where weights are nan
         data = data[(~np.isnan(weights_orig)) &(~np.isnan(data))]
@@ -280,9 +280,10 @@ def plot_hist_sum(combined_path='data/combined.csv'):
     fig, ax = plt.subplots(1, 2, figsize=(15, 6))
     ax = ax.ravel()
     cohesiveness_cols = ['clustering_county', 'support_ratio_county']
+    cohesiveness_labels = ['Clustering', 'Support Ratio']
     for i, data in enumerate([clustering, support_ratio]):
         ax[i].hist(data, bins=100, edgecolor='black')
-        ax[i].set_title(f'{cohesiveness_cols[i]}')
+        ax[i].set_title(f'{cohesiveness_labels[i]}')
 
         # drop where weights are nan
         data = data[(~np.isnan(weights_orig)) &(~np.isnan(data))]
@@ -304,10 +305,11 @@ def plot_hist_sum(combined_path='data/combined.csv'):
     fig, ax = plt.subplots(1, 2, figsize=(15, 6))
     ax = ax.ravel()
     civic_cols = ['volunteering_rate_county', 'civic_organizations_county']
+    civic_labels = ['Volunteering Rate', 'Civic Organizations']
 
     for i, data in enumerate([volunteer_rate, civic_org]):
         ax[i].hist(data, bins=100, edgecolor='black')
-        ax[i].set_title(f'{civic_cols[i]}')
+        ax[i].set_title(f'{civic_labels[i]}')
 
         # drop where weights are nan
         data = data[(~np.isnan(weights_orig)) &(~np.isnan(data))]
@@ -356,6 +358,8 @@ def make_tables(combined_path='data/combined.csv'):
     connectedness_means = []
     connectedness_std = []
     num_data = []
+    connectedness_mins = []
+    connectedness_maxs = []
     for data in [upward_mobility, ec, ec_se, child_ec, child_ec_se, ec_grp_mem, ec_high, ec_high_se, child_high_ec, child_high_ec_se, ec_grp_mem_high, exposure_grp_mem, exposure_grp_mem_high, child_exposure, child_exposure_high, bias_grp_mem, bias_grp_mem_high, child_bias, child_bias_high]:
         data = data[(~np.isnan(weights)) &(~np.isnan(data))]
         weights_data = weights[(~np.isnan(weights)) &(~np.isnan(data))]
@@ -367,13 +371,21 @@ def make_tables(combined_path='data/combined.csv'):
         connectedness_means.append(mean)
         connectedness_std.append(std)
         num_data.append(num)
+        connectedness_mins.append(np.min(data))
+        connectedness_maxs.append(np.max(data))
 
     name = combined_path.split('/')[-1].split('.')[0]
 
     df_1 = pd.DataFrame()
     df_1['Measure'] = ['upward_mobility', 'ec_county', 'ec_se_county', 'child_ec_county', 'child_ec_se_county', 'ec_grp_mem_county', 'ec_high_county', 'ec_high_se_county', 'child_high_ec_county', 'child_high_ec_se_county', 'ec_grp_mem_high_county', 'exposure_grp_mem_county', 'exposure_grp_mem_high_county', 'child_exposure_county', 'child_high_exposure_county', 'bias_grp_mem_county', 'bias_grp_mem_high_county', 'child_bias_county', 'child_high_bias_county']
+    
+    
+    df_1['Measure'] = ['Upward Mobility', 'Economic Connectedness', 'Economic Connectedness Standard Error', 'Child Economic Connectedness', 'Child Economic Connectedness Standard Error', 'Economic Connectedness by Group Membership', 'Economic Connectedness by High Income', 'Economic Connectedness by High Income Standard Error', 'Child Economic Connectedness by High Income', 'Child Economic Connectedness by High Income Standard Error', 'Economic Connectedness by Group Membership by High Income', 'Exposure Group Membership', 'Exposure by Group Membership High Income', 'Child Exposure', 'Child Exposure High Income', 'Bias Group Membership', 'Bias by Group Membership High Income', 'Child Bias', 'Child Bias by High Income']
+    
     df_1['Weighted Mean'] = np.round(connectedness_means,4)
     df_1['Standard Error'] = np.round(connectedness_std,4)
+    df_1['Min'] = connectedness_mins
+    df_1['Max'] = connectedness_maxs
     df_1['Number of Data Points'] = num_data
     df_1.to_csv(f'results/connectedness_table_{name}.csv', index=False)
 
@@ -383,6 +395,8 @@ def make_tables(combined_path='data/combined.csv'):
 
     cohesiveness_means = []
     cohesiveness_std = []
+    cohesiveness_mins = []
+    cohesiveness_maxs = []
     num_data = []
     for data in [clustering, support_ratio]:
         data = data[(~np.isnan(weights)) &(~np.isnan(data))]
@@ -395,12 +409,17 @@ def make_tables(combined_path='data/combined.csv'):
         cohesiveness_means.append(mean)
         cohesiveness_std.append(std)
         num_data.append(num)
+        cohesiveness_mins.append(np.min(data))
+        cohesiveness_maxs.append(np.max(data))
 
     df_2 = pd.DataFrame()
-    df_2['Measure'] = ['clustering_county', 'support_ratio_county']
+    # df_2['Measure'] = ['clustering_county', 'support_ratio_county']
+    df_2['Measure'] = ['Clustering', 'Support Ratio']
     cohesiveness_means = np.round(cohesiveness_means, 4)
     cohesiveness_std = np.round(cohesiveness_std, 4)
     df_2['Weighted Mean'] = cohesiveness_means
+    df_2['Min'] = cohesiveness_mins
+    df_2['Max'] = cohesiveness_maxs
     df_2['Standard Error'] = cohesiveness_std
     df_2['Number of Data Points'] = num_data
 
@@ -413,6 +432,8 @@ def make_tables(combined_path='data/combined.csv'):
     civic_means = []
     civic_std = []
     num_data = []
+    civic_mins = []
+    civic_maxs = []
     for data in [volunteer_rate, civic_org]:
         data = data[(~np.isnan(weights)) &(~np.isnan(data))]
         weights_data = weights[(~np.isnan(weights)) &(~np.isnan(data))]
@@ -424,14 +445,20 @@ def make_tables(combined_path='data/combined.csv'):
         civic_means.append(mean)
         civic_std.append(std)
         num_data.append(num)
+        civic_mins.append(np.min(data))
+        civic_maxs.append(np.max(data))
 
     df_3 = pd.DataFrame()
-    df_3['Measure'] = ['volunteering_rate_county', 'civic_organizations_county']
+    # df_3['Measure'] = ['volunteering_rate_county', 'civic_organizations_county']
+    df_3['Measure'] = ['Volunteering Rate', 'Civic Organizations']
     civic_means = np.round(civic_means, 4)
     civic_std = np.round(civic_std, 4)
     df_3['Weighted Mean'] = civic_means
     df_3['Standard Error'] = civic_std
+    df_3['Min'] = civic_mins
+    df_3['Max'] = civic_maxs
     df_3['Number of Data Points'] = num_data
+    
 
     df_3.to_csv(f'results/civic_engagement_table_{name}.csv', index=False)
 
@@ -464,7 +491,7 @@ def plot_upward_mobility(plot_male_female=True):
     plt.vlines(MEAN_SEC_FIFTH, 0, 150, color='blue', label=f'Mean of 2nd Quintile = {MEAN_SEC_FIFTH}', linestyle='dotted')
     
     plt.title(f'Upward Mobility, {len(upward_mobility)} Counties')
-    plt.xlabel('Income at Age 35 Given Parent Income in Lowest Quintile')
+    plt.xlabel('Income at Age 35 Given Parent Income in the Lowest 25%')
     plt.ylabel('Frequency')
     plt.legend()
     plt.savefig('results/upward_mobility_hist_correct.pdf')
@@ -750,15 +777,16 @@ def optimize_params(X, y, n_iter=100):
 ## XGBRegressor ##
 def prep_data_XGB(X, y, p=0.7):
     # assign labels to X
-    labels = [ 'pop2018', 'ec', 'ec_se',
-    'child_ec', 'child_ec_se', 'ec_grp_mem',
-    'ec_high', 'ec_high_se', 'child_high_ec',
-    'child_high_ec_se', 'ec_grp_mem_high',
-    'exposure_grp_mem', 'exposure_grp_mem_high',
-    'child_exposure', 'child_high_exposure',
-    'bias_grp_mem', 'bias_grp_mem_high', 'child_bias',
-    'child_high_bias', 'clustering', 'support_ratio',
-    'volunteering_rate', 'civic_organizations']
+    # labels = [ 'pop2018', 'ec', 'ec_se',
+    # 'child_ec', 'child_ec_se', 'ec_grp_mem',
+    # 'ec_high', 'ec_high_se', 'child_high_ec',
+    # 'child_high_ec_se', 'ec_grp_mem_high',
+    # 'exposure_grp_mem', 'exposure_grp_mem_high',
+    # 'child_exposure', 'child_high_exposure',
+    # 'bias_grp_mem', 'bias_grp_mem_high', 'child_bias',
+    # 'child_high_bias', 'clustering', 'support_ratio',
+    # 'volunteering_rate', 'civic_organizations']
+    labels = ['Population in 2018', 'Economic Connectedness', 'Economic Connectedness Standard Error', 'Child Economic Connectedness', 'Child Economic Connectedness Standard Error', 'Economic Connectedness by Group Membership', 'Economic Connectedness by High Income', 'Economic Connectedness by High Income Standard Error', 'Child Economic Connectedness by High Income', 'Child Economic Connectedness by High Income Standard Error', 'Economic Connectedness by Group Membership by High Income', 'Exposure Group Membership', 'Exposure by Group Membership High Income', 'Child Exposure', 'Child Exposure High Income', 'Bias Group Membership', 'Bias by Group Membership High Income', 'Child Bias', 'Child Bias by High Income', 'Clustering', 'Support Ratio', 'Volunteering Rate', 'Civic Organizations']
 
     # remove _se columns
     # labels = [label for label in labels if 'se' not in label]
@@ -837,11 +865,11 @@ def run_XGB(X, y, save_name=None, p=0.7):
    
 
     params = {
-    'max_depth': 100,
-    'eta': 0.4,
-    'objective': 'multi:softmax',
-    'eval_metric': 'mlogloss',
-    'num_class': 2,
+        'max_depth': 100,
+        'eta': 0.4,
+        'objective': 'multi:softmax',
+        'eval_metric': 'mlogloss',
+        'num_class': 2,
     }
     
 
@@ -1069,15 +1097,16 @@ def run_regression(X, y, p= 0.7):
     # calculate fraction of R^2
     r2_frac = np.array(r2_features) / r2_total
     # create a zip with the names of the features
-    labels = [ 'pop2018', 'ec', 'ec_se',
-       'child_ec', 'child_ec_se', 'ec_grp_mem',
-       'ec_high', 'ec_high_se', 'child_high_ec',
-       'child_high_ec_se', 'ec_grp_mem_high',
-       'exposure_grp_mem', 'exposure_grp_mem_high',
-       'child_exposure', 'child_high_exposure',
-       'bias_grp_mem', 'bias_grp_mem_high', 'child_bias',
-       'child_high_bias', 'clustering', 'support_ratio',
-       'volunteering_rate', 'civic_organizations']
+    # labels = [ 'pop2018', 'ec', 'ec_se',
+    #    'child_ec', 'child_ec_se', 'ec_grp_mem',
+    #    'ec_high', 'ec_high_se', 'child_high_ec',
+    #    'child_high_ec_se', 'ec_grp_mem_high',
+    #    'exposure_grp_mem', 'exposure_grp_mem_high',
+    #    'child_exposure', 'child_high_exposure',
+    #    'bias_grp_mem', 'bias_grp_mem_high', 'child_bias',
+    #    'child_high_bias', 'clustering', 'support_ratio',
+    #    'volunteering_rate', 'civic_organizations']
+    labels = ['Population in 2018', 'Economic Connectedness', 'Economic Connectedness Standard Error', 'Child Economic Connectedness', 'Child Economic Connectedness Standard Error', 'Economic Connectedness by Group Membership', 'Economic Connectedness by High Income', 'Economic Connectedness by High Income Standard Error', 'Child Economic Connectedness by High Income', 'Child Economic Connectedness by High Income Standard Error', 'Economic Connectedness by Group Membership by High Income', 'Exposure Group Membership', 'Exposure by Group Membership High Income', 'Child Exposure', 'Child Exposure by High Income', 'Bias Group Membership', 'Bias by Group Membership High Income', 'Child Bias', 'Child Bias by High Income', 'Clustering', 'Support Ratio', 'Volunteering Rate', 'Civic Organizations']
     
     # labels = [label for label in labels if 'se' not in label]
 
@@ -1188,7 +1217,7 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     dtrain_female, dtest_female, y_t_female = prep_data_XGB(X_female, y_female, p)
 
     male_XGB_pred_female = model_female.predict(dtest_male)
-    male_XGB_female = np.sum(male_XGB_pred_female) / len(y_t_female)
+    male_XGB_female = np.sum(male_XGB_pred_female) / len(y_t_male)
     
     female_XGB_pred_male = model_male.predict(dtest_female)
     female_XGB_male= np.sum(female_XGB_pred_male) / len(y_t_female)
@@ -1196,10 +1225,10 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     print(f'female XGB predicting males: {male_XGB_female}, male XGB predicting females: {female_XGB_male}') 
 
     # female predicting female and male predicting male
-    male_XGB_pred_male = model_male.predict(dtest_male)
-    male_XGB_male = np.sum(male_XGB_pred_male) / len(y_t_male)
+    # male_XGB_pred_male = model_male.predict(dtest_male)
+    # male_XGB_male = np.sum(male_XGB_pred_male) / len(y_t_male)
    
-    print(f'male XGB predicting males: {male_XGB_male}, female XGB predicting females: {np.sum(y_t_female) / len(y_t_female)}') 
+    print(f'male XGB predicting males: {np.sum(y_t_male) / len(y_t_male)}, female XGB predicting females: {np.sum(y_t_female) / len(y_t_female)}') 
 
     print(f'male diff: {np.sum(y_t_male) / len(y_t_male) - male_XGB_female}, female diff: {np.sum(y_t_female) / len(y_t_female) - female_XGB_male}')
 
@@ -1229,15 +1258,15 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     ax[0].set_title(f'XGB Male Accuracy: {xgb_acc_male:.2f}')
     ax[0].set_xlabel('Predicted')
     ax[0].set_ylabel('True')
-    ax[0].set_xticks([0, 1], ['B', 'A'])
-    ax[0].set_yticks([0, 1], ['B', 'A'])
+    ax[0].set_xticks([0, 1], ['Below Threshold', 'Above Threshold'])
+    ax[0].set_yticks([0, 1], ['Below Threshold', 'Above Threshold'])
 
 
     ax[1].set_title(f'XGB Female Accuracy: {xgb_acc_female:.2f}')
     ax[1].set_xlabel('Predicted')
     ax[1].set_ylabel('True')
-    ax[1].set_xticks([0, 1], ['B', 'A'])
-    ax[1].set_yticks([0, 1], ['B', 'A'])
+    ax[1].set_xticks([0, 1], ['Below Threshold', 'Above Threshold'])
+    ax[1].set_yticks([0, 1], ['Below Threshold', 'Above Threshold'])
 
     # same for regression
     cax2 = ax[2].imshow(reg_cm_male, cmap='Blues', interpolation='nearest')
@@ -1262,15 +1291,15 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     ax[2].set_title(f'WLS Male Accuracy: {reg_acc_male:.2f}')
     ax[2].set_xlabel('Predicted')
     ax[2].set_ylabel('True')
-    ax[2].set_xticks([0, 1], ['B', 'A'])
-    ax[2].set_yticks([0, 1], ['B', 'A'])
+    ax[2].set_xticks([0, 1], ['Below Threshold', 'Above Threshold'])
+    ax[2].set_yticks([0, 1], ['Below Threshold', 'Above Threshold'])
 
 
     ax[3].set_title(f'WLS Female Accuracy: {reg_acc_female:.2f}')
     ax[3].set_xlabel('Predicted')
     ax[3].set_ylabel('True')
-    ax[3].set_xticks([0, 1], ['B', 'A'])
-    ax[3].set_yticks([0, 1], ['B', 'A'])
+    ax[3].set_xticks([0, 1], ['Below Threshold', 'Above Threshold'])
+    ax[3].set_yticks([0, 1], ['Below Threshold', 'Above Threshold'])
 
     plt.tight_layout()
     plt.savefig(f'results/regression_xgb_comparison_{p}.pdf')
@@ -1306,6 +1335,10 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
 
     df_merged = pd.merge(df_xgb_merged, df_r2_merged, on='Feature', how='outer').fillna(0)
 
+    # round columns to 4 decimal places
+    df_merged = df_merged.round(4)
+
+    # drop index
     df_merged.to_csv('results/feature_importance_comparison_wls_xgb.csv')
 
     # sort by male importance xgb
@@ -1376,6 +1409,7 @@ if __name__ == '__main__':
 
     # get_combined_df()
     # plot_hist_sum()
+    # make_tables()
     # create_X_y(save_data=False, make_hist=False)
     # X, y = np.load('data/X.npy', allow_pickle=True), np.load('data/y.npy', allow_pickle=True)
     # optimize_params(X, y, n_iter=1000)
