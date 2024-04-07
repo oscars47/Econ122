@@ -5,6 +5,13 @@ https://www.nature.com/articles/s41586-022-04996-4
 
 ## Updates
 
+## 4/7/24
+* commenting out line 536-537 for normalizing columns of X. XGB now gets 100% accuracy for both M,F, and WLS gets 80% 
+
+    female XGB predicting males: 0.610877306571706, male XGB predicting females: 0.4807381029459372
+    male XGB predicting males: 0.48041437358368405, female XGB predicting females: 0.610877306571706
+    male diff: -0.13046293298802197, female diff: 0.1301392036257688, not physical. un-uncommenting
+
 ## 3/27/24
 * intepreting male-female difference.
     - predict not accuracy but predicted percentage. hope is that goes a lot closer to females than male; difference in coefficients is why women are more likely to escape; and then do other way. if women acted like men, how much fewer of them
