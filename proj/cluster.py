@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import igraph as ig
 import leidenalg as la
 from copy import deepcopy
@@ -14,9 +15,9 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 import statsmodels.api as sm
 
-
 # https://www.taxpolicycenter.org/statistics/household-income-quintiles
-MEAN_SEC_FIFTH = 32631
+# MEAN_SEC_FIFTH = 32631
+TWENTYFIFTH = 32106
 
 ## plotting and getting statistics ##
 def get_combined_df(sc_data_path='data/social_capital_county.csv', um_data_path='data/cty_kfr_rP_gP_p25.csv', name=None):
@@ -488,13 +489,16 @@ def plot_upward_mobility(plot_male_female=True):
         plt.vlines(df_1_male['Weighted Mean'][0], 0, 150, color='orange', label=f'Male Weighted Average = {df_1_male["Weighted Mean"][0]}', linestyle='dashed')
         plt.vlines(df_1_female['Weighted Mean'][0], 0, 150, color='gold', label=f'Female Weighted Average = {df_1_female["Weighted Mean"][0]}', linestyle='dashed')
     plt.vlines(df_1['Weighted Mean'][0], 0, 150, color='red', label=f'Weighted Average = {df_1["Weighted Mean"][0]:.2f}')
-    plt.vlines(MEAN_SEC_FIFTH, 0, 150, color='blue', label=f'Mean of 2nd Quintile = {MEAN_SEC_FIFTH}', linestyle='dotted')
+    plt.vlines(TWENTYFIFTH, 0, 150, color='blue', label=f'25th Percentile = {TWENTYFIFTH}', linestyle='dotted')
     
     plt.title(f'Upward Mobility, {len(upward_mobility)} Counties')
     plt.xlabel('Income at Age 35 Given Parent Income in the Lowest 25%')
     plt.ylabel('Frequency')
     plt.legend()
     plt.savefig('results/upward_mobility_hist_correct.pdf')
+
+    print('percentage above threshold male', np.sum(np.where(upward_mobility_male > TWENTYFIFTH, 1, 0)) / len(upward_mobility_male))
+    print('percentage above threshold female', np.sum(np.where(upward_mobility_female > TWENTYFIFTH, 1, 0)) / len(upward_mobility_female))
 
 ## perform cluster analysis ##
 def create_X_y(df_path='data/combined.csv', make_hist=False, save_data=True, name=None):
@@ -794,7 +798,7 @@ def prep_data_XGB(X, y, p=0.7):
     
     # binary classification: did county get out of bottom quintile?
     # quintiles = [28007, 55000, 89744, 149131]
-    y = np.where(y>MEAN_SEC_FIFTH, 1, 0)
+    y = np.where(y>TWENTYFIFTH, 1, 0)
 
     # y = np.digitize(y, quintiles)
     # print(np.unique(y, return_counts=True))
@@ -999,7 +1003,7 @@ def prep_data_reg(X, y, p):
     # remove nans
     # X = X[~np.isnan(X)]
     # y = y[~np.isnan(y)]
-    y = np.where(y>MEAN_SEC_FIFTH, 1, 0)
+    y = np.where(y>TWENTYFIFTH, 1, 0)
     # y = np.digitize(y, quintiles)
     # print(np.unique(y, return_counts=True))
 
@@ -1222,24 +1226,36 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     female_XGB_pred_male = model_male.predict(dtest_female)
     female_XGB_male= np.sum(female_XGB_pred_male) / len(y_t_female)
 
-    print(f'female XGB predicting males: {male_XGB_female}, male XGB predicting females: {female_XGB_male}') 
+    # print(f'female XGB predicting males: {male_XGB_female}, male XGB predicting females: {female_XGB_male}') 
 
-    # female predicting female and male predicting male
-    # male_XGB_pred_male = model_male.predict(dtest_male)
-    # male_XGB_male = np.sum(male_XGB_pred_male) / len(y_t_male)
+    # # female predicting female and male predicting male
+    # # male_XGB_pred_male = model_male.predict(dtest_male)
+    # # male_XGB_male = np.sum(male_XGB_pred_male) / len(y_t_male)
    
-    print(f'male XGB predicting males: {np.sum(y_t_male) / len(y_t_male)}, female XGB predicting females: {np.sum(y_t_female) / len(y_t_female)}') 
+    # print(f'male XGB predicting males: {np.sum(y_t_male) / len(y_t_male)}, female XGB predicting females: {np.sum(y_t_female) / len(y_t_female)}') 
 
-    print(f'male diff: {np.sum(y_t_male) / len(y_t_male) - male_XGB_female}, female diff: {np.sum(y_t_female) / len(y_t_female) - female_XGB_male}')
+    # print(f'male diff: {np.sum(y_t_male) / len(y_t_male) - male_XGB_female}, female diff: {np.sum(y_t_female) / len(y_t_female) - female_XGB_male}')
+
+    male_male = model_male.predict(dtest_male)
+    print('male male', np.sum(np.where(male_male == 1, 1, 0)) / len(male_male))
+
+    female_female = model_female.predict(dtest_female)
+    print('female female', np.sum(np.where(female_female == 1, 1, 0)) / len(female_female))
+
+
 
     # compare their CMs
-    fig, ax = plt.subplots(2, 2, figsize=(10, 10))
+    fig, ax = plt.subplots(2, 2, figsize=(15, 15))
     ax = ax.ravel()
 
     cax0 = ax[0].imshow(xgb_cm_male, cmap='Blues', interpolation='nearest')
-    fig.colorbar(cax0, ax=ax[0])
+    divider = make_axes_locatable(ax[0])
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cax0, cax=cax)
     cax1 = ax[1].imshow(xgb_cm_female, cmap='Blues', interpolation='nearest')
-    fig.colorbar(cax1, ax=ax[1])
+    divider = make_axes_locatable(ax[1])
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cax1, cax=cax)
 
     thresh = xgb_cm_male.max() / 2
     for i in range(xgb_cm_male.shape[0]):
@@ -1270,9 +1286,13 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
 
     # same for regression
     cax2 = ax[2].imshow(reg_cm_male, cmap='Blues', interpolation='nearest')
-    fig.colorbar(cax2, ax=ax[2])
+    divider = make_axes_locatable(ax[2])
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cax2, cax=cax)
     cax3 = ax[3].imshow(reg_cm_female, cmap='Blues', interpolation='nearest')
-    fig.colorbar(cax3, ax=ax[3])
+    divider = make_axes_locatable(ax[3])
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cax3, cax=cax)
 
     thresh = reg_cm_male.max() / 2
     for i in range(reg_cm_male.shape[0]):
@@ -1311,9 +1331,10 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
 
     # Convert to DataFrame for easier handling
     df_importance_male = pd.DataFrame({'Feature': list(importance_male.keys()), 'Importance male': list(importance_male.values())})
+    df_importance_male['Importance male'] = df_importance_male['Importance male'] / np.sum(df_importance_male['Importance male'])
 
     df_importance_female = pd.DataFrame({'Feature': list(importance_female.keys()), 'Importance female': list(importance_female.values())})
-
+    df_importance_female['Importance female'] = df_importance_female['Importance female'] / np.sum(df_importance_female['Importance female'])
     # add the r2 fractions
 
     # Unpacking the items for plotting
@@ -1361,7 +1382,7 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
 
     # Adding labels, title, and legend
     ax.set_xticks(positions, df_merged['Feature'], rotation=90)
-    ax.set_ylabel('Number of Times Feature Used Across Trees')
+    ax.set_ylabel('Relative Percent Usage of Feature')
     # ax2.set_ylabel('Fraction of $R^2$')
 
     # plt.title('Feature Importance Comparison')
@@ -1400,7 +1421,7 @@ if __name__ == '__main__':
     # run_XGB_MF(X_male, y_male, X_female, y_female)
     # run_regression_MF(X_male, y_male, X_female, y_female)
     
-    # plot_upward_mobility(plot_male_female=True)
+    plot_upward_mobility(plot_male_female=True)
     run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=1)
 
     # calculate percent of data above upper bound for lowest quintile
