@@ -1243,6 +1243,14 @@ def run_regression_XGB_MF(X_male, y_male, X_female, y_female, p=0.7):
     print('female female', np.sum(np.where(female_female == 1, 1, 0)) / len(female_female))
 
 
+    print('using WLS')
+    X_tv, X_t, y_tv, y_t, w_tv, w_t = prep_data_reg(X_male, y_male, p)
+    male_male_wls = male_model_reg.predict(sm.add_constant(X_tv))
+    print('male male', np.sum(np.where(male_male_wls > 0.5, 1, 0)) / len(male_male_wls))
+
+    X_tv, X_t, y_tv, y_t, w_tv, w_t = prep_data_reg(X_female, y_female, p)
+    female_female_wls = female_model_reg.predict(sm.add_constant(X_tv))
+    print('female female', np.sum(np.where(female_female_wls > 0.5, 1, 0)) / len(female_female_wls))
 
     # compare their CMs
     fig, ax = plt.subplots(2, 2, figsize=(15, 15))

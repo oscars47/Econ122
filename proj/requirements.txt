@@ -1,0 +1,11 @@
+numpy
+pandas
+matplotlib
+igraph
+leidenalg
+copy
+tqdm
+functools
+xgboost
+sklearn
+statsmodels
